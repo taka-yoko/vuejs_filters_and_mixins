@@ -129,12 +129,106 @@ computed: {
 
 # Understanding Mixins
 
+filterは、global(main.js)に宣言すれば、component全体で使用することができる。
+global filterのように、各componentで共通するロジックを重複させず、まとめる機能がmixin。
+
+この章では、重複するロジックを持つcomponentを用意して、以下の章でmixinを使ったリファクタをしていくための準備をしている。
+
 # Creating and Using Mixins
+
+各componentで共通のdataやロジックを、別ファイルに書き出す
+ここではdataとcomputedが重複しているので、そこを抽出して別ファイルに
+まとめる。
+
+```javascript
+export const fruitMixin = {
+  data() {
+      return {
+          fruits: ['Apple', 'Banana', 'Mango', 'Melon'],
+          filterText: ''
+      }
+  },
+  computed: {
+      filteredFruits() {
+          return this.fruits.filter((element) => {
+              return element.match(this.filterText);
+          })
+      }
+  }
+};
+```
+
+component側で、上記のファイルをimportして、mixinとしてincludeする
+こうすると、vue.jsの方で、既存のdataプロパティやcomputedプロパティ
+の中にマージしてくれる。
+
+```javascript
+mixins: [fruitMixin],
+data() {
+    return {
+        text: 'Hello, there!'
+    }
+},
+```
 
 # How Mixins get Merged
 
+mixinのマージのされかた。
+前章にもあるように、mixinをincludeしても、既存のdataを壊すことはない。
+
+```javascript
+mixins: [fruitMixin],
+data() {
+    return {
+        text: 'Hello, there!'
+    }
+},
+```
+
+mixinと、既存のインスタンス内に同じライフサイクルフックがあっても、
+上書きされることはなく、どちらも実行される。
+実行の順番は、
+1. mixin
+2. インスタンス内の記述
+
+```javascript
+  created() {
+    console.log("Created");
+  }
+```
+
 # Creating a Global Mixin (Special Case!)
+
+global mixinの設定
+
+```javascript
+// main.js
+Vue.mixin({
+  created() {
+    console.log("global mixin - created hook");
+  }
+});
+```
+
+global mixinは、すべてのVueインスタンスで呼ばれる。
+ここでは、以下の所で呼ばれるため、計3回
+`global mixin - created hook`が表示される。
+
+- main.jsの`new Vue`
+- App.vue
+- List.vue
 
 # Mixins and Scope
 
+mixin内に書いたdataはcomponent内で共有されるのか？
+
+App.vue内で、以下のボタンを作成。
+ボタンクリックすると、App.vueのインスタンスで宣言している
+dataのfruit arrayにのみ`Mango`が追加される。
+すなわち、mixinのデータは各componentで共有されず、それぞれ
+複製された別々のものとなっている。
+
+```html
+<button @click="fruits.push('Mango')">Add New Item</button>
+```
 
